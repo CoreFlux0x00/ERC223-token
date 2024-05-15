@@ -90,9 +90,9 @@ contract ERC223Token is IERC223 {
     
     /**
      * @dev Transfer the specified amount of tokens to the specified address.
-     *      Invokes the `tokenFallback` function if the recipient is a contract.
+     *      Invokes the `tokenReceived` function if the recipient is a contract.
      *      The token transfer fails if the recipient is a contract
-     *      but does not implement the `tokenFallback` function
+     *      but does not implement the `tokenReceived` function
      *      or the fallback function to receive funds.
      *
      * @param _to    Receiver address.
