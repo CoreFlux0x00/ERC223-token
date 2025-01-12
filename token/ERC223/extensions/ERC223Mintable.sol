@@ -1,20 +1,23 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "https://github.com/Dexaran/ERC223-token-standard/blob/development/token/ERC223/IERC223.sol";
-import "https://github.com/Dexaran/ERC223-token-standard/blob/development/token/ERC223/IERC223Recipient.sol";
-import "https://github.com/Dexaran/ERC223-token-standard/blob/development/utils/Address.sol";
+import "../ERC223.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Reference implementation of the ERC223 standard token.
  */
-contract ERC223MintableToken is IERC223 {
+contract ERC223Mintable is ERC223, Ownable {
 
     string  private _name;
     string  private _symbol;
     uint8   private _decimals;
     uint256 private _totalSupply;
+    uint256 private immutable _cap;
     
     mapping(address => uint256) public balances; // List of user balances.
+
+    event Mint(address indexed to, uint256 amount);
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
@@ -26,11 +29,13 @@ contract ERC223MintableToken is IERC223 {
      * construction.
      */
      
-    constructor(string memory new_name, string memory new_symbol, uint8 new_decimals)
+    constructor(string memory new_name, string memory new_symbol, uint8 new_decimals, uint256 cap_)
     {
         _name     = new_name;
         _symbol   = new_symbol;
         _decimals = new_decimals;
+        require(cap_ > 0, "ERC223: cap is 0");
+        _cap = cap_;
     }
 
     /**
@@ -137,10 +142,29 @@ contract ERC223MintableToken is IERC223 {
         return true;
     }
 
-    function mint(address _to, uint256 _amount) public returns (bool)
-    {
+    /**
+     * @dev Creates `amount` tokens and assigns them to `account`.
+     * @param _to The address to mint tokens to
+     * @param _amount The amount of tokens to mint
+     * @return bool Returns true if the operation was successful
+     */
+    function mint(address _to, uint256 _amount) public onlyOwner returns (bool) {
+        require(_to != address(0), "ERC223: mint to the zero address");
+        require(_amount > 0, "ERC223: mint amount must be positive");
+        require(_totalSupply + _amount <= _cap, "ERC223: cap exceeded");
+        
         balances[_to] += _amount;
-        _totalSupply  += _amount;
+        _totalSupply += _amount;
+        
         emit Transfer(address(0), _to, _amount, hex"00000000");
+        emit Mint(_to, _amount);
+        return true;
+    }
+
+    /**
+     * @dev Returns the cap on the token's total supply.
+     */
+    function cap() public view returns (uint256) {
+        return _cap;
     }
 }
